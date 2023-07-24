@@ -56,3 +56,19 @@ dst = cv2.warpPerspective(image, M, (w, h))
 show(dst, "dst2")
 if w < h:
     dst = np.rot90(dst)
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
