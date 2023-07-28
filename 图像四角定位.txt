@@ -40,7 +40,8 @@ img = cv2.imread('debug999.png').astype(np.uint8)*1
 
 
 #就是上一章的内容，具体就是会输出一个轮廓图像并返回一个轮廓数据
-def draw_contour(img,color,width):
+def draw_contour(img, color, width):
+    helper=img.copy()
     import numpy as np
     kernel = np.ones((1, 5), np.uint8)
     if len(img.shape)>2:
@@ -58,8 +59,8 @@ def draw_contour(img,color,width):
 
     binary = cv2.blur(img,(5,5))
     binary = cv2.blur(binary,(5,5))
-    binary = cv2.blur(binary,(5,5))
-    binary = cv2.boxFilter(binary,-1,(5,5), normalize=True )
+    # binary = cv2.blur(binary,(5,5))
+    # binary = cv2.boxFilter(binary,-1,(5,5), normalize=True )
     cv2.imwrite('binary998.png',binary)
     if 1:                     
     # 边缘检测, Sobel算子大小为3
@@ -106,11 +107,11 @@ def draw_contour(img,color,width):
         import numpy as np
         import pandas as pd
         import matplotlib.pyplot as plt
-        a=[round(i) for i in a]
-        print(a)
-        plt.hist(a, density=False)
-        plt.savefig('aaaa.png')
-        print()
+        # a=[round(i) for i in a]
+        # print(a)
+        # plt.hist(a, density=False)
+        # plt.savefig('aaaa.png')
+        # print()
         # 按照相差上下10度来分类.
 
         #============下面按照上下15度进行分类.因为每一个类别一定有一个中间轴.中间轴一定是这些店里面的值.我们来存索引.
@@ -148,7 +149,7 @@ def draw_contour(img,color,width):
             #======算出每个阵营的投影直线.
             #==先算每个阵营的中心直线
             zhenying=aaa
-            zhenyingjiaodu=[a[i] for i in list1]
+            zhenyingjiaodu=[jiajiaobaocun[i] for i in aaa]
             zhenyingzhixianjiaodu=sum(zhenyingjiaodu)/len(zhenyingjiaodu)
             print(zhenyingzhixianjiaodu)
             chuizhijiaodu=zhenyingzhixianjiaodu+90
@@ -156,7 +157,7 @@ def draw_contour(img,color,width):
 
             a=math.tan(chuizhijiaodu/180*math.pi)
             xiangliang=(1,a*1)
-            list1zhongdian=[[(lines[i][0][0]+lines[i][0][2])/2,(lines[i][0][1]+lines[i][0][3])/2] for i in list1]
+            list1zhongdian=[[(lines[i][0][0]+lines[i][0][2])/2,(lines[i][0][1]+lines[i][0][3])/2] for i in aaa]
             touying=[(i[0]*xiangliang[0]+i[1]*xiangliang[1])/math.sqrt(xiangliang[0]**2+xiangliang[1]**2) for i in list1zhongdian]
 
 
@@ -175,16 +176,16 @@ def draw_contour(img,color,width):
             print(a)
             a=touying
             if baocun:
-                j=a[baocun[0]]
+                j=a[baocun[0]] # 跟第一点近的放list1里面
                 list1=[dex for dex,i in enumerate(a) if abs(i-j)<yuzhi]
-                j=a[baocun[1]]
+                j=a[baocun[1]]  
                 list2=[dex for dex,i in enumerate(a) if abs(i-j)<yuzhi]
 
-            print(1)
-            list1inalldex=[zhenying[i] for i in list1]
-            list2inalldex=[zhenying[i] for i in list2]
-            zhixianfenzu.append(list1inalldex)
-            zhixianfenzu.append(list2inalldex)
+                print(1)
+                list1inalldex=[zhenying[i] for i in list1]
+                list2inalldex=[zhenying[i] for i in list2]
+                zhixianfenzu.append(list1inalldex)
+                zhixianfenzu.append(list2inalldex)
             print()
         print()
         zhixianfenzu# 里面有4个数组, 每个数组表示一个直线族. 
@@ -329,19 +330,47 @@ def draw_contour(img,color,width):
 
 
         # lines = cv2.HoughLines(edges,1,np.pi/180,100)
-      
-
-    dsfadsfads
+        #====================下面我们做仿射变换即可.
+        all3=np.array(all3)[:,None,...]
+        print(1)
+        approx=all3
+        n = []
+        for x, y in zip(approx[:, 0, 0], approx[:, 0, 1]):
+            n.append((x, y))
+        n = sorted(n)
+        sort_point = []
+        n_point1 = n[:2]
+        n_point1.sort(key=lambda x: x[1])
+        sort_point.extend(n_point1)
+        n_point2 = n[2:4]
+        n_point2.sort(key=lambda x: x[1])
+        n_point2.reverse()
+        sort_point.extend(n_point2)
+        p1 = np.array(sort_point, dtype=np.float32)
+        h = (sort_point[1][1] - sort_point[0][1] )**2+ (sort_point[1][0] - sort_point[0][0] )**2# sort_point : 左上, 左下, 右下,右上.
+        h=math.sqrt(h)
+        w = (sort_point[2][0] - sort_point[1][0])**2+(sort_point[2][1] - sort_point[1][1])**2
+        w=math.sqrt(w)
+        pts2 = np.array([[0, 0], [0, h], [w, h], [w, 0]], dtype=np.float32)
+        h=int(h)
+        w=int(w)
+        M = cv2.getPerspectiveTransform(p1, pts2)
         
-    contours,hierarchy = cv2.findContours(binary,cv2.RETR_CCOMP  ,cv2.CHAIN_APPROX_SIMPLE)
-    cv2.arcLength(contour, True)
+        dst = cv2.warpPerspective(helper, M, (w, h))
+        # print(dst.shape)
+        def show(image, window_name):
+            # cv2.namedWindow(window_name, 0)
+            cv2.imwrite(window_name+'.png', image)
+
+        if w < h:
+            dst = np.rot90(dst)
+
+        show(dst, str(99999999)+"dst2")
+        print('最终我们图片保存在',str(9999999)+"dst2")
 
 
-
-    contours = sorted(contours, key = cv2.contourArea, reverse = True)[0]
-    copy = img.copy()
-    resoult = cv2.drawContours(copy,contours[:],-1,color,width)
-    cv2.imwrite('resoult.png',resoult)
+        
+ 
     return contours
  
  
