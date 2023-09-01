@@ -1,2 +1,0 @@
-running_loss = loss.item()#注意这里必须加item,否则爆显存.
-print(running_loss)
